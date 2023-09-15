@@ -71,11 +71,11 @@ forvalues y = 2000/2019 {
 		gen year = `y'
 		
 		* Drop unecessary variables (priority & all have different variables)
-		if "`x'" == "priority" {	
-			cap drop `var_drop_priority'
+		if "`x'" == "priority" | "`x'" == "all" & `y' == 2003 {	
+			drop `var_drop_priority'
 		}
 		else {
-			cap drop `var_drop_all'
+			drop `var_drop_all'
 		}
 		
 		* Rename variable "g" or "prioritiesdata" (different varname in 2003 & 2019)
@@ -116,3 +116,4 @@ forvalues y = 2000/2019 {
 	save "$workingfolder\WIPO/`y'\Merged_`y'.dta", replace
 
 }
+
