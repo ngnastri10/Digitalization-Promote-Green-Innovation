@@ -44,13 +44,13 @@ log using "$workingfolder\Logs\Log_9.15.23", text replace
 local var_drop_all /*
 
 Characteristic variables
-*/ applicationnumber title country
+*/ applicationnumber title country applicationdate
 
 
 local var_drop_priority /*
 
 Characteristic variables
-*/ applicationnumber country
+*/ applicationnumber country applicationdate
 
 
 ********************************************************************************
