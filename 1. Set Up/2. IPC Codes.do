@@ -53,11 +53,36 @@ import excel "$datafolder\Raw IPC Codes.xlsx", sheet("Sheet1") clear
 		   are green.
 */
 		
-* Check if code has "-".
-gen dash = cond(strpos(B, "-"), 1, 0, .)
-		
 * Find prefix of each code
 gen prefix = substr(B,1,4) 
+
+* Gen complement of prefix
+gen comp = substr(B,5,.)
+
+* Split the codes into seperate variables
+split comp, gen(raw_code) parse(,) notrim
+gen ndash = length(B) - length(subinstr(B, "-", "", .))
+
+* Make local variable for how many codes we need to loop over
+gen ncomm = length(B) - length(subinstr(B, ",", "", .)) + 1
+qui sum ncomm
+
+forvalues x = 1/`r(max)' {
+	
+	* Check if code has "-".
+	gen ndash`x' = length(raw_code`x') - length(subinstr(raw_code`x', "-", "", .))
+
+}
+
+forvalues x = 1/`r(max)' {
+	
+	* Split again if we have codes with "-"
+	split raw_code`x', gen(rc_dash`x'_) parse(-) notrim
+
+}
+
+drop ndash* rc_dash*
+
 
 
 		
