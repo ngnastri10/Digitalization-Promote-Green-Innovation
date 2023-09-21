@@ -150,19 +150,22 @@ forvalues y = 1/2 {
 		* Fix empty observations
 		replace dif`y'_h`x' = "" if dif`y'_h`x' == "."
 		
+		* Add "0" infront of single digit codes
+		qui gen test0 = length(dif`y'_h`x')
+		qui replace dif`y'_h`x' = "0" + dif`y'_h`x' if test0 == 1
+		drop test0
+		
 		* Merge with stub
 		replace dif`y'_h`x' = dpref`y'_1_1 + "/" + dif`y'_h`x' if dif`y'_h`x' != ""
 	}
 }
 
 
-
-** NOTE: NEED TO CHECK HOW TO MAKE "00" INSTEAD OF "0"
-
-
-* Fix names & datatype of variables to be consistent 
+* Fix names of variables to be consistent
 qui sum dif1
 local y = `r(max)'+1
+qui sum dif2
+local top = `r(max)'+1
 forvalues x = 1/`top' {
 	local ++y
 	
@@ -171,7 +174,8 @@ forvalues x = 1/`top' {
 	
 }
 
-* Want to string all variables so we can combine with the stubs to get final codes
+* Merge with first 4 digit prefix
+* First calculate total # of variables we created
 forvalues x = 1/2 {
 	
 	* Get total number of variables we created
@@ -182,12 +186,57 @@ forvalues x = 1/2 {
 
 * This is total number of variables we created
 local var_num = `test1' + `test2'
+display `var_num'
+
+forvalues x = 1/`var_num' {
+	
+	* Add 4 digit prefix to parsed out codes
+	replace dif1_h`x' = prefix + " " + dif1_h`x' if dif1_h`x' != ""
+}
 
 
-drop dif1_* dif2_*
+********************************************************************************
+************ Generate Individual Codes for All IPC Codes Without "-" ***********
+********************************************************************************
 
+* Generate Individual IPC codes for all codes without "-"
+qui sum ncomm
+local y = `r(max)'
+forvalues x = 1/`y' {
+	
+	* Generate final codes
+	if `x' == 1 {
+		gen green_code`x' = prefix + " " + raw_code`x' if ndash == 0
+	}
+	else {
+		gen green_code`x' = prefix + " " + raw_code`x' if raw_code`x' != "" & ndash == 0
+	}
+}
 
-drop ndash* rc_dash* dpref* dif*
+********************************************************************************
+******** Add Parsed Out Codes to "Green Codes" & Reshape for Final Copy ********
+********************************************************************************
+
+forvalues x = 1/`var_num' {
+	
+	local y = `x'+`r(max)'
+	
+	* Generate final codes
+	gen green_code`y' = dif1_h`x'
+}
+
+* Keep variables we want before reshaping
+bysort B: gen check = _n
+drop if check > 1
+keep A B green_code*
+
+* Reshape file
+reshape long green_code, i(B) j(index)
+drop if green_code == ""
+
+* Keep only Green Code
+keep green_code*
+
 
 
 
