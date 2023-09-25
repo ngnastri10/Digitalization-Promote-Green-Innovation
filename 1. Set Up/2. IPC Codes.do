@@ -8,8 +8,8 @@ Description: 	This program takes raw IPC codes from the WIPO website and prepare
 Date created: 	September 18th, 2023
 Created by: 	Nico Nastri
 
-Date edited:	
-Edited by:	
+Date edited:	September 25th, 2023
+Edited by:		Nico Nastri
 *******************************************************************************/ 
 
 ****************
@@ -51,6 +51,11 @@ import excel "$datafolder\Raw IPC Codes.xlsx", sheet("Sheet1") clear
 		2) If we observed "-" this means every code in between the two numbers is 
 		   a green patent. For example 01/05-01/44 means all patents between 05 & 44
 		   are green.
+		
+		3) First Code Only: In the code there is a variable fcode_only. This 
+		   is a dummy for IPC codes where the range of codes is (for example) 
+		   17/00 - 20/00. We interpret this as every code 17/00, 18/00, 19/00, 20/00
+		   is a green code. However if 17/01 etc. exists, those are not green.
 */
 
 ********************************************************************************
@@ -111,8 +116,12 @@ forvalues x = 1/`r(max)' {
 	
 	}
 	
+	* Make dummy indicating only the first code changes
+	gen fcode_only`x' = dpref`x'_1_1 != dpref`x'_2_1
+	
 	* Calculate difference between upper & lower bound
 	gen dif`x' = dpref`x'_2_2 - dpref`x'_1_2
+	replace dif`x' = dpref`x'_2_1 - dpref`x'_1_1 if fcode_only`x' == 1
 	
 }
 
@@ -128,12 +137,15 @@ forvalues y = 1/2 {
 	
 	* Generate starting point
 	gen dif`y'_h1 = dpref`y'_1_2
+	replace dif`y'_h1 = dpref`y'_1_1 if fcode_only`y' == 1
 	
 	forvalues x = 2/`top`y'' {
 	
 		* Parse out all numbers in each set of codes with "-"
 		local i = `x'-1
-		gen dif`y'_h`x' = dif`y'_h`i'+1 if dif`y'_h`i' < dpref`y'_2_2
+		gen dif`y'_h`x' = dif`y'_h`i'+1 if dif`y'_h`i' < dpref`y'_2_2 & fcode_only`y' != 1
+		replace dif`y'_h`x' = dif`y'_h`i'+1 if dif`y'_h`i' < dpref`y'_2_1 & fcode_only`y' == 1
+		
 	}	
 	
 }
@@ -152,11 +164,13 @@ forvalues y = 1/2 {
 		
 		* Add "0" infront of single digit codes
 		qui gen test0 = length(dif`y'_h`x')
-		qui replace dif`y'_h`x' = "0" + dif`y'_h`x' if test0 == 1
+		qui replace dif`y'_h`x' = "0" + dif`y'_h`x' if test0 == 1 & fcode_only`y' != 1
 		drop test0
 		
 		* Merge with stub
-		replace dif`y'_h`x' = dpref`y'_1_1 + "/" + dif`y'_h`x' if dif`y'_h`x' != ""
+		replace dif`y'_h`x' = dpref`y'_1_1 + "/" + dif`y'_h`x' if dif`y'_h`x' != "" & fcode_only`y' != 1
+		replace dif`y'_h`x' = dif`y'_h`x' + "/" + "00" if dif`y'_h`x' != "" & fcode_only`y' == 1
+		
 	}
 }
 
@@ -234,12 +248,18 @@ keep A B green_code*
 reshape long green_code, i(B) j(index)
 drop if green_code == ""
 
+* Remove space in between the codes (strange non-space character appears)
+forvalues x = 1/13 {
+	gen check`x' = substr(green_code,`x', 1)
+	gen type`x' = regexm(check`x', "[0-9A-Z/]$")
+	replace check`x' = "" if type`x' == 0 
+
+}
+
+order check*, last
+egen hold = concat(check1-check13)
+replace green_code = hold
+
 * Keep only Green Code
 keep green_code*
-
-
-
-
-		
-
 
