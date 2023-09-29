@@ -22,7 +22,7 @@ Edited by:
 clear all
 
 * Set up global directories
-global project "C:\Users\nn3495a\Desktop\Brunel & Poole"
+global project "C:\Users\nn3495a\Desktop\Work\Brunel & Poole"
 global datafolder "$project\Data"
 global workingfolder "$project\Working"
 
