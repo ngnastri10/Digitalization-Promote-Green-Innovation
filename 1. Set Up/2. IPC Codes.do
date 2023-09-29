@@ -24,6 +24,7 @@ clear all
 global project "C:\Users\nn3495a\Desktop\Work\Brunel & Poole"
 global datafolder "$project\Data"
 global workingfolder "$project\Working"
+global resultsfolder "$project\Results"
 
 * Set up folders if necessary
 cap mkdir "$workingfolder"
