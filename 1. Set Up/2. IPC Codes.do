@@ -262,5 +262,7 @@ egen hold = concat(check1-check13)
 replace green_code = hold
 
 * Keep only Green Code
-keep green_code*
+keep green_code
+rename green_code ipc_code
 
+save "$workingfolder\all_ipc_codes.dta", replace
