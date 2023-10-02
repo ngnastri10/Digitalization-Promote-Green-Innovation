@@ -261,7 +261,9 @@ order check*, last
 egen hold = concat(check1-check13)
 replace green_code = hold
 
-* Keep only Green Code
+* Keep only Unique Green Code's
+bys green_code: gen check = _n
+keep if check == 1
 keep green_code
 rename green_code ipc_code
 
