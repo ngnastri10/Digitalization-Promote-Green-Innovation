@@ -35,3 +35,36 @@ cap log close
 log using "$workingfolder\Logs\Log_9.15.23", text replace
 
 ********************************************************************************
+
+cap mkdir "$workingfolder\Merged"
+
+forvalues x = 2000/2019 {
+	
+	use "$workingfolder\WIPO/`x'\Merged_`x'.dta", clear
+	
+	**************************************
+	** Fix Codes w/ Only First 4 Digits **
+	**************************************
+	* Generate check variable of first 4 codes
+	qui gen check = substr(ipc_code, 1, 4)	
+	
+	* Loop through & check if they match with the 4 code digits from IPC dataset
+	qui local var = "$four_digit_codes"
+	foreach y in `var' {
+		* Replace longer codes w/ 4 digit if they are only 4 digit in the IPC dataset
+		qui replace ipc_code = "`y'" if check == "`y'"
+	}
+	
+	****************************
+	** Merge IPC & WIPO Codes **
+	****************************
+	
+	merge m:1 ipc_code using "$workingfolder\all_ipc_codes
+	
+	save "$workingfolder\Merged/`x'.dta"
+}
+
+
+*****************************
+** Append All Merged Files **
+*****************************

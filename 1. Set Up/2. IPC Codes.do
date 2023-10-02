@@ -267,4 +267,34 @@ keep if check == 1
 keep green_code
 rename green_code ipc_code
 
+********************************************************************************
+************* Create Global Macro w/ List of Variables of 4 Digits *************
+********************************************************************************
+
+preserve
+
+* Keep the codes with 4
+keep if length(ipc_code) == 4
+
+* Create local variable with string of just those codes
+levelsof ipc_code, local(ipc_code)
+count if ipc_code != ""
+local first = ipc_code[1]
+local last = ipc_code[`r(N)']
+
+foreach x in `ipc_code' {
+	gen hold`x' = "`x'"
+	gen s`x' = " "
+	
+}
+
+egen args = concat(hold`first'-s`last')
+local args = args[1]
+
+* Generate the global variable
+global four_digit_codes "`args'"
+
+restore
+
+* Save
 save "$workingfolder\all_ipc_codes.dta", replace
