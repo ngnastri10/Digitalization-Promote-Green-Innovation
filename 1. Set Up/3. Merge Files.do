@@ -55,6 +55,9 @@ forvalues x = 2000/2019 {
 		qui replace ipc_code = "`y'" if check == "`y'"
 	}
 	
+	* Drop check
+	drop check
+	
 	****************************
 	** Merge IPC & WIPO Codes **
 	****************************
@@ -68,3 +71,13 @@ forvalues x = 2000/2019 {
 *****************************
 ** Append All Merged Files **
 *****************************
+cd 	"$workingfolder\Merged"
+
+*Append all waves to one dataset
+local theFiles: dir . files "*.dta"
+clear
+append using `theFiles' 
+
+* Save
+save "$workingfolder\Final_Merged_IPC_WIPO_Codes", replace
+
