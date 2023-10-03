@@ -69,3 +69,5 @@ drop if applicationid == ""
 * Collapse by applicationid to get final versions of variables
 collapse green_narrow (max) green_broad (first) year (rawsum) total_green_ipc total_ipc, by(applicationid)
 
+
+save "$workingfolder\green_variables.dta", replace
