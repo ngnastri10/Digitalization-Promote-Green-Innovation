@@ -36,6 +36,9 @@ cap mkdir "$workingfolder\Logs"
 cap log close
 log using "$workingfolder\Logs\Log_9.15.23", text replace
 
+* Install libraries
+ssc install fastreshape
+
 ********************************************************************************
 
 
@@ -89,6 +92,7 @@ forvalues y = 2000/2019 {
 		
 		* Generate famsize - # of patent codes in the family varaible 
 		gen famsize = length(family) - length(subinstr(family, ";", "", .)) + 1
+		replace famsize = famsize + 1 if family != ""
 		
 		* Generate triadic - 1 if family patent code includes US, JP & EP, else 0 
 		gen triadic = cond(strpos(family, "US") & strpos(family, "JP") & strpos(family, "EP"), 1, 0, .)
@@ -121,7 +125,7 @@ forvalues y = 2000/2019 {
 	** Fix IPC Codes **
 	*******************
 	
-	putexcel set "$resultsfolder\Share Patents w No IPC.xlsx", modify
+	/*putexcel set "$resultsfolder\Share Patents w No IPC.xlsx", modify
 	* Count share of patents without IPC code & export number to excel
 	qui gen check_patent = cond(ipc == "", 1, 0, .)
 	qui sum check_patent
@@ -129,7 +133,7 @@ forvalues y = 2000/2019 {
 	qui putexcel A`i' = `y'
 	qui putexcel B`i' = `r(sum)'
 	qui putexcel C`i' = `r(N)'
-	qui putexcel D`i' = `r(mean)'
+	qui putexcel D`i' = `r(mean)'*/
 	
 	* Prepare IPC Codes to be Split
 	replace ipc = subinstr(ipc, "//", "/", .)
@@ -147,11 +151,13 @@ forvalues y = 2000/2019 {
 		qui replace ipc_code`z' = subinstr(ipc_code`z', " ", "", .)
 	
 	}
-
+	
+	* Prepare for reshaping
 	drop ipc_len
+	drop if ipc == ""
 
 	* Make Long dataset with all the IPC Codes
-	reshape long ipc_code, i(applicationid) j(index)
+	fastreshape long ipc_code, i(applicationid) j(index)
 	drop if ipc_code == ""
 
 	* Drop duplicates
