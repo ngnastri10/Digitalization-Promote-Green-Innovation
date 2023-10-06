@@ -138,11 +138,11 @@ forvalues x = 2000/2019 {
 ***********************************************************************************
 ************************ PART III: Append All Year Files **************************
 ***********************************************************************************
-
+/* The computer doesn't have storage space for such a large file. Leave this commented out for now.
 *****************************
 ** Append All Merged Files **
 *****************************
-cd 	"$workingfolder\Merged"
+cd 	"$workingfolder\Merged\IPC-WIPO-ISIC"
 
 *Append all waves to one dataset
 local theFiles: dir . files "*.dta"
