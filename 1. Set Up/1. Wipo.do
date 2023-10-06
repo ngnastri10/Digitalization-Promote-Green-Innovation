@@ -75,7 +75,7 @@ forvalues y = 2000/2019 {
 		gen year = `y'
 		
 		* Drop unecessary variables (priority & all have different variables)
-		if "`x'" == "priority" | "`x'" == "all" & `y' == 2003 {	
+		if "`x'" == "priority" | ("`x'" == "all" & `y' == 2003) {	
 			drop `var_drop_priority'
 		}
 		else {
@@ -84,7 +84,7 @@ forvalues y = 2000/2019 {
 		
 		* Rename variable "g" or "prioritiesdata" (different varname in 2003 & 2019)
 		if `y' == 2003 | (`y' == 2019 & "`x'" == "priority") {
-			rename prioritiesdata family
+			gen family = ""
 		}
 		else {
 			rename g family
