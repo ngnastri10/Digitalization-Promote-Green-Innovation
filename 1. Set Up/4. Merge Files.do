@@ -100,11 +100,17 @@ forvalues x = 2000/2019 {
 	gen green_ipc = green_match == 3
 	gen num_8d_codes = 1
 	
+	* Generate green broad & green narrow
+	egen green_broad = max(green_ipc), by(applicationid)
+	egen hold = total(green_ipc), by(applicationid)
+	bysort applicationid: gen hold2 = _N
+	gen green_narrow = hold/hold2
+	
 	***********************************
 	** Collapse IPC Codes to 4 Digit **
 	***********************************
 	
-	collapse (first) ipc family year famsize triadic prioritiesdata (max) green_ipc (rawsum) num_green_codes num_8d_codes, by(applicationid ipc4)
+	collapse (first) ipc family year famsize triadic transfer prioritiesdata green_narrow green_broad (max) green_ipc (rawsum) num_green_codes num_8d_codes, by(applicationid ipc4)
 	
 	*********************************
 	** Merge IPC-WIPO & ISIC Codes **
@@ -113,6 +119,8 @@ forvalues x = 2000/2019 {
 	* Generate share of IPC4 codes in each patent
 	egen ipc_tot_num = total(num_8d_codes), by(applicationid)
 	gen share_ipc = num_8d_codes/ipc_tot_num
+	
+
 
 	
 	joinby ipc4 using "$workingfolder\ISIC_Codes.dta", _merge(join) unm(m)
