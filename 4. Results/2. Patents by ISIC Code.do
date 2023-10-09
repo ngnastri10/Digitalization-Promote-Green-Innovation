@@ -26,6 +26,7 @@ global resultsfolder "$project\Results"
 
 * Set up folders if necessary
 cap mkdir "$workingfolder"
+cap mkdir "$workingfolder\ISIC Counts"
 
 * Other set up 
 *set maxvar 10000
@@ -99,6 +100,9 @@ order isic_rev3_4 *_fixed *_doublecount  *_flag
 * Export to excel
 export excel using "C:\Users\nn3495a\Desktop\Work\Brunel & Poole\Results\Counts_By_ISIC4.xls", sheet("Unweighted") sheetmodify firstrow(variables)
 
+* Save file
+save "$workingfolder\ISIC Counts\Unweighted", replace
+
 restore
 
 ********************************************************************************
@@ -115,5 +119,8 @@ collapse (sum) `vars' [pw = weight], by(isic_rev3_4)
 
 * Export to excel
 export excel using "C:\Users\nn3495a\Desktop\Work\Brunel & Poole\Results\Counts_By_ISIC4.xls", sheet("Weighted") sheetmodify firstrow(variables)
+
+* Save file
+save "$workingfolder\ISIC Counts\Weighted", replace
 
 restore
