@@ -77,12 +77,15 @@ gen new_flag = num_patents_flag == 1 & new == 1 & new[_n+1] == 1
 gen green_broad_flag = num_patents_flag == 1 & green_broad == 1 & green_broad[_n+1] == 1
 gen green_narrow_flag = num_patents_flag == 1 & green_narrow == 1 & green_narrow[_n+1] == 1
 
+***********************
+** By ISIC Code Only **
+***********************
 
 preserve 
 local vars = "num_patents transfer new  green_broad green_narrow"
 
 * Now collapse all variables of interest
-collapse (rawsum) `vars' *_flag, by(isic_rev3_4)
+collapse (sum) `vars' *_flag [pw = probability_weight], by(isic_rev3_4)
 
 * Fix the double counting & prepare to export
 foreach x in `vars' {
@@ -102,7 +105,37 @@ export excel using "C:\Users\nn3495a\Desktop\Work\Brunel & Poole\Results\Counts_
 
 * Save file
 save "$workingfolder\ISIC Counts\Unweighted", replace
+restore
 
+*************************
+** By ISIC Code & Year **
+*************************
+
+
+preserve 
+local vars = "num_patents transfer new  green_broad green_narrow"
+
+* Now collapse all variables of interest
+collapse (sum) `vars' *_flag [pw = probability_weight], by(isic_rev3_4 year)
+
+* Fix the double counting & prepare to export
+foreach x in `vars' {
+	
+	rename `x'_flag flag_`x'
+	rename `x' `x'_doublecount
+	gen `x'_fixed = `x' - flag_`x'
+	rename flag_`x' `x'_flag
+}
+
+* Order variables
+order isic_rev3_4 *_fixed *_doublecount  *_flag
+
+
+* Export to excel
+export excel using "C:\Users\nn3495a\Desktop\Work\Brunel & Poole\Results\Counts_By_ISIC4_Year.xls", sheet("Unweighted") sheetmodify firstrow(variables)
+
+* Save file
+save "$workingfolder\ISIC Counts\Unweighted_by_Year", replace
 restore
 
 ********************************************************************************
@@ -122,5 +155,23 @@ export excel using "C:\Users\nn3495a\Desktop\Work\Brunel & Poole\Results\Counts_
 
 * Save file
 save "$workingfolder\ISIC Counts\Weighted", replace
+
+restore
+
+*************************
+** By ISIC Code & Year **
+*************************
+
+preserve
+
+local vars = "num_patents transfer new  green_broad green_narrow"
+collapse (sum) `vars' [pw = weight], by(isic_rev3_4 year)
+
+
+* Export to excel
+export excel using "C:\Users\nn3495a\Desktop\Work\Brunel & Poole\Results\Counts_By_ISIC4_Year.xls", sheet("Weighted") sheetmodify firstrow(variables)
+
+* Save file
+save "$workingfolder\ISIC Counts\Weighted_by_Year", replace
 
 restore
