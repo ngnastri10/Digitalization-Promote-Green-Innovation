@@ -97,13 +97,17 @@ append using `theFiles'
 **************************************************
 ** Merge Patent Data w/ Industry-Trade-FDI File **
 **************************************************
-
 /* 
 	Note: The "industry-trade-fdi" is only available from 2004-2019 on even years.
 	We keep only the years that merge with the "industry-trade-fdi"data, so all 
 	other years fall out. 
 	
 	Note: We create data for 2002 from data for 2003 to get more years.
+	
+	Note: We are missing ISIC codes in both "industry-trade-fdi" and "FDI_vietnam" 
+	datasets. The missing codes are not identical in each dataset. So we merge both
+	of them onto the patents file and then create "combined" versions of the "project",
+	"amount" and "jobs" variables coming from these datasets.
 
 */ 
 
@@ -113,8 +117,27 @@ gen hold = "0"
 replace isic3_2d = hold+isic3_2d if length(isic3_2d) == 1
 drop hold
 
-* Merge files together
-merge m:1 isic3_2d year using "$datafolder\Digitalization Data\industry-trade-fdi.dta", keep(3) nogen
+* Merge Industry trade & Patent files files together
+merge m:1 isic3_2d year using "$datafolder\Digitalization Data\industry-trade-fdi.dta", keep(1 3) nogen
+
+* Prepare to merge FDI Data & patent files
+preserve 
+use "$datafolder\Digitalization Data\FDI_vietnam.dta", clear
+replace year = 2002 if year == 2003
+
+* Rename variables so they don't overlap. Have same name in both datasets.
+foreach x in "project" "amount" "jobs" {
+	
+	rename `x' `x'_FDI
+}
+
+tempfile fdi
+save `fdi'
+restore
+
+
+* Merge FDI & Patent files
+merge m:1 isic3_2d year using `fdi', keep(1 3) nogen
 
 * Save as temporary file
 tempfile main
@@ -130,6 +153,8 @@ save `main'
 ********************************************************
 
 /* Note about LSS - DC Concordance
+
+	** Had this in the code but then commented it out. We can always put it back in **
 
 	12 DC Codes don't match up perfectly with the LSS. In each case, 2 LSS codes 
 	merge to the same DC code. For simplicity I take the average values of computer
@@ -174,20 +199,42 @@ save `digitalization'
 *************************************************
 use `main', clear
 
-merge m:1 year isic3_2d using `digitalization', keep(3) nogen
+merge m:1 year isic3_2d using `digitalization', keep(1 3) nogen
+
+* Drop "Odd" years we have no digitalization data
+drop if year < 2001
+drop if year > 2014
+forvalues x = 2001(2)2013 {
+	
+	drop if year == `x'
+}
 
 ****************************************************************
 ** Collapse Entire Dataset to Industry-Year Observation Level **
 ****************************************************************
 
 * Generate variables to be collapsed as a sum rather than a mean
-
-local vars = triadic transfer green_narrow green_broad
+local vars = "triadic transfer green_narrow green_broad"
 foreach x in `vars' {
 	
-	gen `x'_sum == `x'
+	gen `x'_sum = `x'
 }
 
-collapse famsize triadic transfer green_narrow green_broad (sum)  (first)  [aweight = weight], by(year isic3_2d)
+* Combine the project, amount, jobs variables from the two different datasets.
+
+local vars = "project amount jobs"
+foreach x in `vars' {
+	
+	gen `x'_combined = `x'
+	replace `x'_combined = `x'_FDI if `x'_combined == . & `x'_FDI != . 
+	
+}
+
+* Collapse variables of interest
+collapse famsize triadic transfer green_narrow green_broad (sum) triadic_sum transfer_sum green_narrow_sum green_broad_sum (firstnm) tot_trade_isic3_2d wid_kt project* amount* jobs* computer internet computer_sum internet_sum [pweight = weight], by(year isic3_2d)
+
+
+* Save Final Dataset
+save "$workingfolder\Final_Clean_Dataset.dta", replace
 
 
