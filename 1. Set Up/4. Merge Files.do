@@ -82,63 +82,68 @@ forvalues x = 2000/2019 {
 **************************** PART II: Merge ISIC Codes ****************************
 ***********************************************************************************
 
-cap mkdir "$workingfolder\Merged\IPC-WIPO-ISIC"
 
-forvalues x = 2000/2019 {
+local isic_code = "2 4"
+foreach y in `isic_code' {
 	
-	use "$workingfolder\Merged\IPC-WIPO/`x'.dta", clear
-	
-	********************************************
-	** Prepare Variables for Collapse & Merge **
-	********************************************
-	
-	/* Note: We don't care about 8 digit IPC codes anymore. So first calculate variables
-			 of interest & then collapse down to the 4 digit IPC level. */
-	
-	* Variables about IPC codes themselves
-	gen num_green_codes = green_match == 3
-	gen green_ipc = green_match == 3
-	gen num_8d_codes = 1
-	
-	* Generate green broad & green narrow
-	egen green_broad = max(green_ipc), by(applicationid)
-	egen hold = total(green_ipc), by(applicationid)
-	bysort applicationid: gen hold2 = _N
-	gen green_narrow = hold/hold2
-	
-	***********************************
-	** Collapse IPC Codes to 4 Digit **
-	***********************************
-	
-	collapse (first) ipc family year famsize triadic transfer prioritiesdata green_narrow green_broad (max) green_ipc (rawsum) num_green_codes num_8d_codes, by(applicationid ipc4)
-	
-	*********************************
-	** Merge IPC-WIPO & ISIC Codes **
-	*********************************
-	
-	* Generate share of IPC4 codes in each patent
-	egen ipc_tot_num = total(num_8d_codes), by(applicationid)
-	gen share_ipc = num_8d_codes/ipc_tot_num
-	
+	* Make folder if necessary
+	cap mkdir "$workingfolder\Merged\IPC-WIPO-ISIC`y'"
 
+	forvalues x = 2008/2019 {
+	
+		use "$workingfolder\Merged\IPC-WIPO/`x'.dta", clear
+	
+		********************************************
+		** Prepare Variables for Collapse & Merge **
+		********************************************
+	
+		/* Note: We don't care about 8 digit IPC codes anymore. So first calculate 	
+		   variables of interest & then collapse down to the 4 digit IPC level. */
+	
+		* Variables about IPC codes themselves
+		gen num_green_codes = green_match == 3
+		gen green_ipc = green_match == 3
+		gen num_8d_codes = 1
+	
+		* Generate green broad & green narrow
+		egen green_broad = max(green_ipc), by(applicationid)
+		egen hold = total(green_ipc), by(applicationid)
+		bysort applicationid: gen hold2 = _N
+		gen green_narrow = hold/hold2
+	
+		****************************************
+		** Collapse IPC Codes to 2 or 4 Digit **
+		****************************************
+	
+		collapse (first) ipc family year famsize triadic transfer prioritiesdata green_narrow green_broad (max) green_ipc (rawsum) num_green_codes num_8d_codes, by(applicationid ipc4)
+	
+		*********************************
+		** Merge IPC-WIPO & ISIC Codes **
+		*********************************
+	
+		* Generate share of IPC4 codes in each patent
+		egen ipc_tot_num = total(num_8d_codes), by(applicationid)
+		gen share_ipc = num_8d_codes/ipc_tot_num
 
+		* Join all matches of ISIC & IPC codes
+		joinby ipc4 using "$workingfolder\ISIC`y'_Codes.dta", _merge(join) unm(m)
 	
-	joinby ipc4 using "$workingfolder\ISIC_Codes.dta", _merge(join) unm(m)
+		* Generate combines weight
+		gen weight = probability_weight*share_ipc
 	
-	* Generate combines weight
-	gen weight = probability_weight*share_ipc
+		* Tab for now
+		tab applicationid if join == 1
 	
-	* Tab for now
-	tab applicationid if join == 1
+		* Drop entire patent if any IPC code didn't merge
+		gen check = join == 1
+		egen check2 = max(check), by(applicationid)
+		drop if check2 == 1
+		drop check*
+		
 	
-	* Drop entire patent if any IPC code didn't merge
-	gen check = join == 1
-	egen check2 = max(check), by(applicationid)
-	drop if check2 == 1
-	drop check*
+		save "$workingfolder\Merged\IPC-WIPO-ISIC`y'/`x'.dta", replace
 	
-	save "$workingfolder\Merged\IPC-WIPO-ISIC/`x'.dta", replace
-	
+	}
 }
 
 

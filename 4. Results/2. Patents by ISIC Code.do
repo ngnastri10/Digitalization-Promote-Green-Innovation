@@ -40,7 +40,7 @@ log using "$workingfolder\Logs\Log_9.15.23", text replace
 *****************************
 ** Append All Merged Files **
 *****************************
-cd 	"$workingfolder\Merged\IPC-WIPO-ISIC"
+cd 	"$workingfolder\Merged\IPC-WIPO-ISIC4"
 
 *Append all waves to one dataset
 local theFiles: dir . files "*.dta"

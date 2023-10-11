@@ -36,8 +36,14 @@ log using "$workingfolder\Logs\Log_9.15.23", text replace
 
 ********************************************************************************
 
-* Import codes
-import delimited "C:\Users\nn3495a\Desktop\Work\Brunel & Poole\Data\Concordance patent\Latest version\ISIC_Rev3\ipc4_to_isic_rev3_4_excl_service.txt", clear
+local isic_code = "2 4"
+
+foreach x in `isic_code' {
+	
+	* Import codes
+	import delimited "$datafolder\Concordance patent\Latest version\ISIC_Rev3\ipc4_to_isic_rev3_`x'_excl_service.txt", clear
 
 * Save as dta file
-save "$workingfolder\ISIC_Codes.dta", replace
+save "$workingfolder\ISIC`x'_Codes.dta", replace
+
+}
