@@ -89,7 +89,7 @@ foreach y in `isic_code' {
 	* Make folder if necessary
 	cap mkdir "$workingfolder\Merged\IPC-WIPO-ISIC`y'"
 
-	forvalues x = 2008/2019 {
+	forvalues x = 2000/2019 {
 	
 		use "$workingfolder\Merged\IPC-WIPO/`x'.dta", clear
 	
