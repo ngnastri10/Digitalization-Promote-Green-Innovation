@@ -198,13 +198,6 @@ forvalues x = 2001(2)2013 {
 ** Collapse Entire Dataset to Industry-Year Observation Level **
 ****************************************************************
 
-* Generate variables to be collapsed as a sum rather than a mean
-local vars = "triadic transfer green_narrow green_broad"
-foreach x in `vars' {
-	
-	gen `x'_sum = `x'
-}
-
 * Combine the project, amount, jobs variables from the two different datasets.
 
 local vars = "project amount jobs"
@@ -215,11 +208,30 @@ foreach x in `vars' {
 	
 }
 
-* Collapse variables of interest
-collapse famsize triadic transfer green_narrow green_broad (sum) triadic_sum transfer_sum green_narrow_sum green_broad_sum (firstnm) tot_trade_isic3_2d wid_kt project* amount* jobs* computer internet computer_sum internet_sum [pweight = weight], by(year isic3_2d)
+* Gen count variables
+gen num_patents = 1
+gen new = transfer == 0 
+gen num_patents_flag = year == year[_n+1] & applicationid == applicationid[_n+1] & isic_rev3_2 == isic_rev3_2[_n+1]
+gen transfer_flag = num_patents_flag == 1 & transfer == 1 & transfer[_n+1] == 1
+gen new_flag = num_patents_flag == 1 & new == 1 & new[_n+1] == 1
+gen green_broad_flag = num_patents_flag == 1 & green_broad == 1 & green_broad[_n+1] == 1
+gen green_narrow_flag = num_patents_flag == 1 & green_narrow == 1 & green_narrow[_n+1] == 1
+
+* Generate weight vars
+gen weight_fam = weight*famsize
+gen weight_triadic = weight*triadic
+
+foreach x in "weight" "weight_fam" "weight_triadic" {
+	
+	* Save conditions
+	local suffix = cond("`x'"=="weight", "Original", cond("`x'" == "weight_fam", "Famsize", cond("`x'" == "weight_triadic", "Triadic", "Broken")))
+
+	preserve
+	* Collapse variables of interest
+	collapse (sum) triadic transfer num_patents new green_narrow green_broad (firstnm) tot_trade_isic3_2d wid_kt project* amount* jobs* computer internet computer_sum internet_sum [pweight = `x'], by(year isic3_2d)
 
 
-* Save Final Dataset
-save "$workingfolder\Final_Clean_Dataset.dta", replace
-
-
+	* Save Final Dataset
+	save "$workingfolder\Final_Clean_Dataset_`suffix'.dta", replace
+	restore
+}
