@@ -211,11 +211,22 @@ foreach x in `vars' {
 * Gen count variables
 gen num_patents = 1
 gen new = transfer == 0 
+foreach x in "narrow" "broad" {
+	foreach y in "new" "transfer" {
+		
+		gen green_`x'_`y' = cond(`y' == 1, green_`x', .)
+
+	}
+}
+
+
+/* Not necessary 
 gen num_patents_flag = year == year[_n+1] & applicationid == applicationid[_n+1] & isic_rev3_2 == isic_rev3_2[_n+1]
 gen transfer_flag = num_patents_flag == 1 & transfer == 1 & transfer[_n+1] == 1
 gen new_flag = num_patents_flag == 1 & new == 1 & new[_n+1] == 1
 gen green_broad_flag = num_patents_flag == 1 & green_broad == 1 & green_broad[_n+1] == 1
 gen green_narrow_flag = num_patents_flag == 1 & green_narrow == 1 & green_narrow[_n+1] == 1
+*/ 
 
 * Generate weight vars
 gen weight_fam = weight*famsize
@@ -228,7 +239,7 @@ foreach x in "weight" "weight_fam" "weight_triadic" {
 
 	preserve
 	* Collapse variables of interest
-	collapse (sum) triadic transfer num_patents new green_narrow green_broad (firstnm) tot_trade_isic3_2d wid_kt project* amount* jobs* computer internet computer_sum internet_sum [pweight = `x'], by(year isic3_2d)
+	collapse (sum) triadic transfer num_patents new green_narrow green_narrow_new green_narrow_transfer green_broad green_broad_new green_broad_transfer (firstnm) tot_trade_isic3_2d wid_kt project* amount* jobs* computer internet computer_sum internet_sum [pweight = `x'], by(year isic3_2d)
 
 
 	* Save Final Dataset
