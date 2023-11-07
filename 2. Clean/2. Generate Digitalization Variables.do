@@ -68,12 +68,25 @@ Where internet_pt comes from what we have in province-digitalization. Weight tho
 ********************************************
 ** Append All Merged IPC-WIPO-ISIC2 Files **
 ********************************************
-cd 	"$workingfolder\Merged\IPC-WIPO-ISIC2"
+cd 	"$workingfolder\Merged\IPC-WIPO-ISIC3"
 
 *Append all waves to one dataset
 local theFiles: dir . files "*.dta"
 clear
 append using `theFiles' 
+
+tostring isic_rev3_3, gen(isic3_3d) format(%03.0f)
+
+
+merge m:1 isic3_3d year using "$workingfolder\total_trade.dta", gen(check1)
+
+merge m:1 isic3_3d year using "$workingfolder\clean_wid_isic3.dta", gen(check2)
+
+
+
+/*
+
+******** OLD CODE FOR MERGING WITH 2 DIGIT DATA **********
 
 ********************************************************************************
 ************************ Merge FDI Data onto Patent Data ***********************
@@ -97,13 +110,13 @@ append using `theFiles'
 */ 
 
 * String & reformat ID variable first to match the Vietnam dataset
-tostring isic_rev3_2, gen(isic3_2d)
-gen hold = "0"
-replace isic3_2d = hold+isic3_2d if length(isic3_2d) == 1
-drop hold
+tostring isic_rev3_3, gen(isic3_3d) format(%03.0f)
+*gen hold = "0"
+*replace isic3_3d = hold+isic3_3d if length(isic3_3d) == 1
+*drop hold
 
 * Merge Industry trade & Patent files together
-merge m:1 isic3_2d year using "$datafolder\Digitalization Data\industry-trade-fdi.dta", keep(1 3) nogen
+merge m:1 isic3_3d year using "$datafolder\Digitalization Data\industry-trade-fdi.dta", keep(1 3) nogen
 
 * Prepare to merge FDI Data & patent files
 preserve 
@@ -122,7 +135,7 @@ restore
 
 
 * Merge FDI & Patent files
-merge m:1 isic3_2d year using `fdi', keep(1 3) nogen
+merge m:1 isic3_3d year using `fdi', keep(1 3) nogen
 
 * Save as temporary file
 tempfile main
@@ -173,7 +186,7 @@ gen computer_sum = computer
 gen internet_sum = internet
 
 * Create Weighted "Digitalization" Variable by Industry
-collapse computer internet (sum) computer_sum internet_sum [pw = ind_share], by(year isic3_2d)
+collapse computer internet (sum) computer_sum internet_sum [pw = ind_share], by(year isic3_3d)
 
 * Save as a temporary file that we will merge back into our main dataset later
 tempfile digitalization
@@ -184,7 +197,7 @@ save `digitalization'
 *************************************************
 use `main', clear
 
-merge m:1 year isic3_2d using `digitalization', keep(1 3) nogen
+merge m:1 year isic3_3d using `digitalization', keep(1 3) nogen
 
 * Drop "Odd" years we have no digitalization data
 drop if year < 2001
@@ -221,7 +234,7 @@ foreach x in "narrow" "broad" {
 
 
 /* Not necessary 
-gen num_patents_flag = year == year[_n+1] & applicationid == applicationid[_n+1] & isic_rev3_2 == isic_rev3_2[_n+1]
+gen num_patents_flag = year == year[_n+1] & applicationid == applicationid[_n+1] & isic_rev3_3 == isic_rev3_3[_n+1]
 gen transfer_flag = num_patents_flag == 1 & transfer == 1 & transfer[_n+1] == 1
 gen new_flag = num_patents_flag == 1 & new == 1 & new[_n+1] == 1
 gen green_broad_flag = num_patents_flag == 1 & green_broad == 1 & green_broad[_n+1] == 1
@@ -239,7 +252,7 @@ foreach x in "weight" "weight_fam" "weight_triadic" {
 
 	preserve
 	* Collapse variables of interest
-	collapse (sum) triadic transfer num_patents new green_narrow green_narrow_new green_narrow_transfer green_broad green_broad_new green_broad_transfer (firstnm) tot_trade_isic3_2d wid_kt project* amount* jobs* computer internet computer_sum internet_sum [pweight = `x'], by(year isic3_2d)
+	collapse (sum) triadic transfer num_patents new green_narrow green_narrow_new green_narrow_transfer green_broad green_broad_new green_broad_transfer (firstnm) tot_trade_isic3_3d wid_kt project* amount* jobs* computer internet computer_sum internet_sum [pweight = `x'], by(year isic3_3d)
 
 
 	* Save Final Dataset

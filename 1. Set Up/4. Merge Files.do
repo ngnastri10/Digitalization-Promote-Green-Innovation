@@ -83,7 +83,7 @@ forvalues x = 2000/2019 {
 ***********************************************************************************
 
 
-local isic_code = "2 4"
+local isic_code = "2 3 4"
 foreach y in `isic_code' {
 	
 	* Make folder if necessary

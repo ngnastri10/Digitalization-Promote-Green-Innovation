@@ -36,7 +36,7 @@ log using "$workingfolder\Logs\Log_9.15.23", text replace
 
 ********************************************************************************
 
-local isic_code = "2 4"
+local isic_code = "2 3 4"
 
 foreach x in `isic_code' {
 	
