@@ -64,10 +64,35 @@ Where internet_pt comes from what we have in province-digitalization. Weight tho
 	
 */
 
+*******************************************
+** Prepare Digitalization Data for Merge **
+*******************************************
+
+use "$datafolder\Digitalization Data\province-digitalization.dta", clear
+rename dc_code province 
+
+* Join digitalization & empshare datasets
+joinby province using "$datafolder\Digitalization Data\VN_empshare.dta", _merge(join_empsh) unm(b)
+
+* String the ISIC Codes
+tostring industry, gen(isic3_3d) format(%03.0f)
+
+* Make sure we have unique values in our merge variable
+drop if year == . 
+ 
+* Create Weighted "Digitalization" Variable by Industry
+collapse computer internet [pw = employment_share], by(year isic3_3d)
+
+* Save as a temporary file that we will merge back into our main dataset later
+tempfile digitalization
+save `digitalization'
+
+
+********************************************
+** Append All Merged IPC-WIPO-ISIC3 Files **
+********************************************
 * Dataset is too large to save, append all the files first.
-********************************************
-** Append All Merged IPC-WIPO-ISIC2 Files **
-********************************************
+
 cd 	"$workingfolder\Merged\IPC-WIPO-ISIC3"
 
 *Append all waves to one dataset
@@ -77,16 +102,65 @@ append using `theFiles'
 
 tostring isic_rev3_3, gen(isic3_3d) format(%03.0f)
 
+**********************************
+** Merged All Datasets Together **
+**********************************
 
-merge m:1 isic3_3d year using "$workingfolder\total_trade.dta", gen(check1)
+* Merge Total Trade & Clean WID Data onto Patent data
+merge m:1 isic3_3d year using "$workingfolder\total_trade.dta", keep(1 3) nogen 
+merge m:1 isic3_3d year using "$workingfolder\clean_wid_isic3.dta", keep(1 3) nogen
 
-merge m:1 isic3_3d year using "$workingfolder\clean_wid_isic3.dta", gen(check2)
+* Generate Industriy Level Digitalization Measure
+merge m:1 isic3_3d year using `digitalization', keep(1 3) nogen
 
+* Drop "Odd" years we have no digitalization data
+drop if year < 2001
+drop if year > 2014
+forvalues x = 2001(2)2013 {
+	
+	drop if year == `x'
+}
+
+****************************************************************
+** Collapse Entire Dataset to Industry-Year Observation Level **
+****************************************************************
+
+* Gen count variables
+gen num_patents = 1
+gen new = transfer == 0 
+foreach x in "narrow" "broad" {
+	foreach y in "new" "transfer" {
+		
+		gen green_`x'_`y' = cond(`y' == 1, green_`x', .)
+
+	}
+}
+
+* Generate weight vars
+gen weight_fam = weight*famsize
+gen weight_triadic = weight*triadic
+
+foreach x in "weight" "weight_fam" "weight_triadic" {
+	
+	* Save conditions
+	local suffix = cond("`x'"=="weight", "Original", cond("`x'" == "weight_fam", "Famsize", cond("`x'" == "weight_triadic", "Triadic", "Broken")))
+
+	preserve
+	* Collapse variables of interest
+	collapse (sum) triadic transfer num_patents new green_narrow green_narrow_new green_narrow_transfer green_broad green_broad_new green_broad_transfer (firstnm) tot_trade_isic3_3d wid_kt computer internet [pweight = `x'], by(year isic3_3d)
+
+
+	* Save Final Dataset
+	save "$workingfolder\Final_Clean_Dataset_3Digit_`suffix'.dta", replace
+	restore
+}
 
 
 /*
 
+
 ******** OLD CODE FOR MERGING WITH 2 DIGIT DATA **********
+
 
 ********************************************************************************
 ************************ Merge FDI Data onto Patent Data ***********************
