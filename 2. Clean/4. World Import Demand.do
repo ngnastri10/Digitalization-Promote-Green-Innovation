@@ -36,15 +36,10 @@ log using "$workingfolder\Logs\Log_9.15.23", text replace
 
 ***********************************************************************************
 
-clear all
-set more off
-local path "C:\Users\pedro\Dropbox\VietNam Technology\data\Trade Data\"
-
 use "$datafolder\IMP_kct_HS4_v2.dta", clear
 
 **merge with weights for vietnam
-merge m:1 reporter hs4_product using "$datafolder\VTN_X_2001weights_v2.dta"
-keep if _merge==3
+merge m:1 reporter hs4_product using "$datafolder\VTN_X_2001weights_v2.dta" keep(3)
 
 	**variable wid_kt**	
 gen wid_it=imp_kct*w_kc

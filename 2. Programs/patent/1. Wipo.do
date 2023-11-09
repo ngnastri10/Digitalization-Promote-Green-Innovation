@@ -29,7 +29,7 @@ global resultsfolder "$project\Results"
 
 * Set up folders if necessary
 cap mkdir "$workingfolder"
-*/
+*/ 
 
 * Install libraries
 ssc install fastreshape

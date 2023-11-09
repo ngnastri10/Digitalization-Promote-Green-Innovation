@@ -7,19 +7,19 @@ Description: 	This is a master do file for the Digitalization in Vietnam project
 				2. Weighted by Patent Family Size
 				3. Weighted by if Patent is from US, EU, or Japan
 				
-				This code has 3 sections:
+				The code proceeds in 3 parts:
 				
-				1. Set Up: Sets up the raw data to be cleaned
-				2. Clean: Generates the final dataset
-				3. Results: Runs summary statistics & regressions on final dataset
+				Part 1: Set up Patent data
+				Part 2: Set up Concordance & Trade data
+				Part 3: Set up Digitalization data & merge all variables together
 				
 			
 			
 Date created: 	October 10th, 2023
 Created by: 	Nico Nastri
 
-Date edited:	
-Edited by:		
+Date edited:	November 8, 2023
+Edited by:		Nico Nastri
 *******************************************************************************/ 
 
 ****************
@@ -32,10 +32,10 @@ clear all
 
 * Set up global directories
 global project "C:\Users\nn3495a\Desktop\Work\Brunel & Poole"
-global datafolder "$project\Data"
+global datafolder "$project\1. Data"
 global workingfolder "$project\Working"
 global resultsfolder "$project\Results"
-global codefolder "$project\Code\Digitalization-Promote-Green-Innovation"
+global codefolder "$project\Code\Digitalization-Promote-Green-Innovation\2. Programs"
 
 * Set up folders if necessary
 cap mkdir "$workingfolder"
@@ -51,38 +51,48 @@ log using "$workingfolder\Logs\Log_9.15.23", text replace
 
 
 ********************************************************************************
-****************************** Part 1: Set Up Data *****************************
+************************** Part 1: Set Up Patent Data **************************
 ********************************************************************************
 
 * Set up WIPO Codes
-do "$codefolder\1. Set Up\1. Wipo.do"
+do "$codefolder\patent\1. Wipo.do"
 
 * Set up IPC Codes
-do "$codefolder\1. Set Up\2. IPC Codes.do"
+do "$codefolder\patent\2. IPC Codes.do"
 
 * Set up ISIC Codes
-do "$codefolder\1. Set Up\3. ISIC Codes.do"
+do "$codefolder\patent\3. ISIC Codes.do"
 
 * Merge WIPO, IPC, ISIC codes. Generate patent-ISIC level files for each year. 
 * Note: This doesn't merge all the years together because the file is very large. 
-do "$codefolder\1. Set Up\4. Merge Files.do"
+do "$codefolder\patent\4. Merge Files.do"
 
 
 ********************************************************************************
-****************************** Part 2: Clean Data ******************************
+********* Part 2: Set Up Concordances & Trade/WID/Digitalization Data **********
 ********************************************************************************
 
 
-* Generate Green variables
-do "$codefolder\2. Clean\1. Generate Green Variables.do"
+* Make Concordance btwn HS1 & ISIC3 Codes
+do "$codefolder\concordances\1. HS1 to ISIC3.do"
 
-* Generate Digitalization variables
-* Note: This also creates our final dataset. Will break this up when finalizing the code.
-do "$codefolder\2. Clean\2. Generate Digitalization Variables.do"
+* Generate Total Trade Variable
+do "$codefolder\trade\1. Trade ISIC 3 Digit.do"
+
+* Generate World Import Demand Variable
+do "$codefolder\trade\2. World Import Demand.do"
+
+* Generate Digitalization Data
+do "$codefolder\digitalization\1. Generate Digitalization Variables.do"
+
 
 ********************************************************************************
-************************* Part 3: Generate Results Data ************************
+************************* Part 3: Create Final Dataset *************************
 ********************************************************************************
+
+do "$codefolder\final dataset\1. Make Final Dataset.do"
+
+
 /*
 
 Commenting out the results part for now because there is some repeat code in these files

@@ -29,7 +29,6 @@ global resultsfolder "$project\Results"
 * Set up folders if necessary
 cap mkdir "$workingfolder"
 */ 
-
 ********************************************************************************
 
 * Import Raw IPC Codes

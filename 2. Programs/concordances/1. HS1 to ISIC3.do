@@ -1,14 +1,14 @@
 /*******************************************************************************
-Description: 	This program cleans & prepares the ISIC rev 3 codes for merging
+Description: 	Convert HS1 codes to ISIC3 
 				
 				
 			
 			
-Date created: 	October 5th, 2023
+Date created: 	November 6th, 2023
 Created by: 	Nico Nastri
 
 Date edited:	
-Edited by:		
+Edited by:	
 *******************************************************************************/ 
 
 ****************
@@ -31,14 +31,30 @@ cap mkdir "$workingfolder"
 
 ********************************************************************************
 
-local isic_code = "2 3 4"
+import delimited "$datafolder\concordances\raw\JobID-19_Concordance_H1_to_I3.CSV", clear
 
-foreach x in `isic_code' {
-	
-	* Import codes
-	import delimited "$datafolder\Concordance patent\Latest version\ISIC_Rev3\ipc4_to_isic_rev3_`x'_excl_service.txt", clear
+keep hs1996productcode isicrevision3productcode
+rename (hs1996productcode isicrevision3productcode) (h1 isic3)
 
-* Save as dta file
-save "$workingfolder\ISIC`x'_Codes.dta", replace
+gen hs0_3d=int(h1/100)
+gen isic3_3d=int(isic3/10)
 
-}
+gen a=1
+
+collapse (sum) a, by(hs0_3d isic3_3d)
+drop a
+
+tostring hs0_3d, replace format(%03.0f)
+tostring isic3_3d, replace format(%03.0f)
+
+g a=1
+egen rep=sum(a), by( hs0_3d)
+egen dup=seq(), by( hs0_3d)
+replace dup=0 if rep==1
+tostring dup, gen(d)
+egen hs0_3d_m=concat(hs0_3d d), p(_)
+drop a
+
+order hs0_3d isic3_3d dup d hs0_3d_m rep
+
+save "$workingfolder\hs04d_isic3.dta", replace
