@@ -64,10 +64,6 @@ Where internet_pt comes from what we have in province-digitalization. Weight tho
 	
 */
 
-**********************************
-** Prepare Trade Data for Merge **
-**********************************
-
 cap mkdir "$workingfolder\Vietnam Trade Data"
 
 import delimited "C:\Users\nn3495a\Desktop\Work\Brunel & Poole\Data\Trade Data\Vietnamimports2000-07.csv", clear
@@ -86,16 +82,6 @@ cd 	"$workingfolder\Vietnam Trade Data"
 local theFiles: dir . files "*.dta"
 clear
 append using `theFiles' 
-
-replace productcode = int(productcode/10)
-
-tostring productcode, gen(isic3_3d) format(%03.0f)
-drop productcode
-
-collapse tradevaluein1000usd, by(year isic3_3d)
-
-tempfile trade
-save `trade'
 
 
 
@@ -144,7 +130,6 @@ tostring isic_rev3_3, gen(isic3_3d) format(%03.0f)
 * Merge Total Trade & Clean WID Data onto Patent data
 merge m:1 isic3_3d year using "$workingfolder\total_trade.dta", keep(1 3) nogen 
 merge m:1 isic3_3d year using "$workingfolder\clean_wid_isic3.dta", keep(1 3) nogen
-merge m:1 isic3_3d year using `trade', keep(1 3) nogen
 
 * Generate Industriy Level Digitalization Measure
 merge m:1 isic3_3d year using `digitalization', keep(1 3) nogen
@@ -183,189 +168,10 @@ foreach x in "weight" "weight_fam" "weight_triadic" {
 
 	preserve
 	* Collapse variables of interest
-	collapse (sum) triadic transfer num_patents new green_narrow green_narrow_new green_narrow_transfer green_broad green_broad_new green_broad_transfer (firstnm) tot_trade_isic3_3d tradevaluein1000usd wid_kt computer internet [pweight = `x'], by(year isic3_3d)
+	collapse (sum) triadic transfer num_patents new green_narrow green_narrow_new green_narrow_transfer green_broad green_broad_new green_broad_transfer (firstnm) tot_trade_isic3_3d wid_kt computer internet [pweight = `x'], by(year isic3_3d)
 
 
 	* Save Final Dataset
 	save "$workingfolder\Final_Clean_Dataset_3Digit_`suffix'.dta", replace
-	restore
-}
-
-
-/*
-
-
-******** OLD CODE FOR MERGING WITH 2 DIGIT DATA **********
-
-
-********************************************************************************
-************************ Merge FDI Data onto Patent Data ***********************
-********************************************************************************
-
-**************************************************
-** Merge Patent Data w/ Industry-Trade-FDI File **
-**************************************************
-/* 
-	Note: The "industry-trade-fdi" is only available from 2004-2019 on even years.
-	We keep only the years that merge with the "industry-trade-fdi"data, so all 
-	other years fall out. 
-	
-	Note: We create data for 2002 from data for 2003 to get more years.
-	
-	Note: We are missing ISIC codes in both "industry-trade-fdi" and "FDI_vietnam" 
-	datasets. The missing codes are not identical in each dataset. So we merge both
-	of them onto the patents file and then create "combined" versions of the "project",
-	"amount" and "jobs" variables coming from these datasets.
-
-*/ 
-
-* String & reformat ID variable first to match the Vietnam dataset
-tostring isic_rev3_3, gen(isic3_3d) format(%03.0f)
-*gen hold = "0"
-*replace isic3_3d = hold+isic3_3d if length(isic3_3d) == 1
-*drop hold
-
-* Merge Industry trade & Patent files together
-merge m:1 isic3_3d year using "$datafolder\Digitalization Data\industry-trade-fdi.dta", keep(1 3) nogen
-
-* Prepare to merge FDI Data & patent files
-preserve 
-use "$datafolder\Digitalization Data\FDI_vietnam.dta", clear
-replace year = 2002 if year == 2003
-
-* Rename variables so they don't overlap. Have same name in both datasets.
-foreach x in "project" "amount" "jobs" {
-	
-	rename `x' `x'_FDI
-}
-
-tempfile fdi
-save `fdi'
-restore
-
-
-* Merge FDI & Patent files
-merge m:1 isic3_3d year using `fdi', keep(1 3) nogen
-
-* Save as temporary file
-tempfile main
-save `main'
-
-
-************************************************************************************
-** Convert Province-Year Digitalization Measure into Industry-Year Digitalization **
-************************************************************************************
-
-********************************************************
-** Merge Province Digitalization & LSS-DC Concordance **
-********************************************************
-
-/* Note about LSS - DC Concordance
-
-	** Had this in the code but then commented it out. We can always put it back in **
-
-	12 DC Codes don't match up perfectly with the LSS. In each case, 2 LSS codes 
-	merge to the same DC code. For simplicity I take the average values of computer
-	& internet for the two LSS codes that go into the DC code. The values across 
-	the cells being averaged are usually very similar. 
-*/ 
-
-* Open Province Digitalization Code
-use "$datafolder\Digitalization Data\province-digitalization.dta", clear
-
-* String & Rename the ID code (which is incorrectly named in the raw data)
-tostring dc_code, gen(lss_code)
-drop dc_code
-
-* Merge with LSS - DC Concordance Dataset
-merge m:1 lss_code using "$datafolder\Digitalization Data\province-lss-dc-concordance.dta", keep(1 3) nogen
-
-* Collapse to get unique DC code so we can merge onto other databases
-*collapse computer internet, by(dc_code year)
-
-
-***************************************
-** Prepare to Merge with Patent Data **
-***************************************
-
-* Now Merge Digitalization w/ Industry Employment Shares
-joinby dc_code using "$datafolder\Digitalization Data\industry-employment-share-in-province.dta", _merge(join_empsh) unm(b)
-
-* Generate sum variables as well to have both 
-gen computer_sum = computer
-gen internet_sum = internet
-
-* Create Weighted "Digitalization" Variable by Industry
-collapse computer internet (sum) computer_sum internet_sum [pw = ind_share], by(year isic3_3d)
-
-* Save as a temporary file that we will merge back into our main dataset later
-tempfile digitalization
-save `digitalization'
-
-*************************************************
-** Merge Province Digitalization & Patent Data **
-*************************************************
-use `main', clear
-
-merge m:1 year isic3_3d using `digitalization', keep(1 3) nogen
-
-* Drop "Odd" years we have no digitalization data
-drop if year < 2001
-drop if year > 2014
-forvalues x = 2001(2)2013 {
-	
-	drop if year == `x'
-}
-
-****************************************************************
-** Collapse Entire Dataset to Industry-Year Observation Level **
-****************************************************************
-
-* Combine the project, amount, jobs variables from the two different datasets.
-
-local vars = "project amount jobs"
-foreach x in `vars' {
-	
-	gen `x'_combined = `x'
-	replace `x'_combined = `x'_FDI if `x'_combined == . & `x'_FDI != . 
-	
-}
-
-* Gen count variables
-gen num_patents = 1
-gen new = transfer == 0 
-foreach x in "narrow" "broad" {
-	foreach y in "new" "transfer" {
-		
-		gen green_`x'_`y' = cond(`y' == 1, green_`x', .)
-
-	}
-}
-
-
-/* Not necessary 
-gen num_patents_flag = year == year[_n+1] & applicationid == applicationid[_n+1] & isic_rev3_3 == isic_rev3_3[_n+1]
-gen transfer_flag = num_patents_flag == 1 & transfer == 1 & transfer[_n+1] == 1
-gen new_flag = num_patents_flag == 1 & new == 1 & new[_n+1] == 1
-gen green_broad_flag = num_patents_flag == 1 & green_broad == 1 & green_broad[_n+1] == 1
-gen green_narrow_flag = num_patents_flag == 1 & green_narrow == 1 & green_narrow[_n+1] == 1
-*/ 
-
-* Generate weight vars
-gen weight_fam = weight*famsize
-gen weight_triadic = weight*triadic
-
-foreach x in "weight" "weight_fam" "weight_triadic" {
-	
-	* Save conditions
-	local suffix = cond("`x'"=="weight", "Original", cond("`x'" == "weight_fam", "Famsize", cond("`x'" == "weight_triadic", "Triadic", "Broken")))
-
-	preserve
-	* Collapse variables of interest
-	collapse (sum) triadic transfer num_patents new green_narrow green_narrow_new green_narrow_transfer green_broad green_broad_new green_broad_transfer (firstnm) tot_trade_isic3_3d wid_kt project* amount* jobs* computer internet computer_sum internet_sum [pweight = `x'], by(year isic3_3d)
-
-
-	* Save Final Dataset
-	save "$workingfolder\Final_Clean_Dataset_`suffix'.dta", replace
 	restore
 }
